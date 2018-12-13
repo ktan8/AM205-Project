@@ -1,0 +1,49 @@
+Source	Target	Type	Regulatory relation
+PAMP	TLRs		Enhance
+TLRs	TLR-TIRAP-MyD88	Protein to Co-complex	Enhance
+TIRAP	TLR-TIRAP-MyD88	Protein to Co-complex	Enhance
+MyD88	TLR-TIRAP-MyD88	Protein to Co-complex	Enhance
+TLR-TIRAP-MyD88	TRAF6		Enhance
+TLRs	TLR-TRIF-TRAM	Protein to Co-complex	Enhance
+TRIF	TLR-TRIF-TRAM	Protein to Co-complex	Enhance
+TRAM	TLR-TRIF-TRAM	Protein to Co-complex	Enhance
+TLR-TRIF-TRAM	TRAF6		Enhance
+TLR-TRIF-TRAM	IKKs		Enhance
+IKKs	IkB		Enhance
+IkB	IkB-NFkB	Protein to Co-complex	Enhance
+NFkB	IkB-NFkB	Protein to Co-complex	Enhance
+IkB-NFkB	PD-L1		Enhance
+TRAF6	NFkB		Enhance
+TRAF6	JNK		Enhance
+TRAF6	p38		Enhance
+TRAF6	MEK/ERK		Enhance
+JNK	NFAT		Enhance
+p38	NFAT		Enhance
+MEK/ERK	NFAT		Enhance
+NFAT	PD-L1		Enhance
+IFNgamma	IFNgamma-IFNGR1-IFNGR2	Protein to Co-complex	Enhance
+IFNGR1	IFNgamma-IFNGR1-IFNGR2	Protein to Co-complex	Enhance
+IFNGR2	IFNgamma-IFNGR1-IFNGR2	Protein to Co-complex	Enhance
+JAK1	JAK	Redundant genes to same pool	Enhance
+JAK2	JAK	Redundant genes to same pool	Enhance
+JAK	IFNgamma-IFNGR1-IFNGR2-JAK		Enhance
+IFNgamma-IFNGR1-IFNGR2	IFNgamma-IFNGR1-IFNGR2-JAK		Enhance
+IFNgamma-IFNGR1-IFNGR2-JAK	STAT_activated		Enhance
+STAT	STAT_activated		Enhance
+STAT1	STAT		Enhance
+STAT3	STAT		Enhance
+STAT_activated	PD-L1		Enhance
+JAK	SHP2		Enhance
+SHP2	RAS		Enhance
+RAS	RAF		Enhance
+RAF	MEK/ERK		Enhance
+MEK/ERK	NFAT		Enhance
+PTEN	PI3K		Repress
+JAK	PI3K		Enhance
+PIP2	PIP3		Enhance
+PI3K	PIP3		Enhance
+PIP3	Akt		Enhance
+Akt	MEK/ERK		Enhance
+Akt	mTOR		Enhance
+mTOR	S6K/eIF4B		Enhance
+S6K/eIF4B	PD-L1		Enhance
