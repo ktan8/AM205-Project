@@ -135,15 +135,17 @@ def example2():
 
     (corrE0, corrE1, corrE2) = (compare_mat(sensB, eign0), compare_mat(sensB, eign1), compare_mat(sensB, eign2))
     (lapE1, lapE2) = (compare_mat(sensB, l1), compare_mat(sensB, l2))
+    (lap1, lap2) = (compare_mat(sensB, L1), compare_mat(sensB, L2))
     #  D1 = (np.sum(np.abs(), axis = 1))
    
     objects = ('Prop sign', 'Propogation_directed_unsigned',
                'Propogation_undirected', 'Distance_directed', 'Distance_undirected', 
                'Neighbor directed', 'Neighbor undirected', 'total neighbor', 
+               'Laplacian sign', 'Laplacian unsigned',
                'Eigenvector sign', 'Eigenvector directed', 'eigenvector undirected', \
                'Laplacian_eigen dir', 'Lapaclain_eign_undir')
     y_pos = np.arange(len(objects))
-    diff_data = [cor_prob_sd, cor_prop_ud, cor_prob_uu, cor_dist_ud, cor_dist_uu, cor_neigh_sd, cor_neigh_ud, cor_neigh_uu, corrE0, corrE1, corrE2, lapE1, lapE2]
+    diff_data = [cor_prob_sd, cor_prop_ud, cor_prob_uu, cor_dist_ud, cor_dist_uu, cor_neigh_sd, cor_neigh_ud, cor_neigh_uu, lap1, lap2, corrE0, corrE1, corrE2, lapE1, lapE2]
     corrs = [x[1] for x in diff_data]
     plt.bar(y_pos, corrs, align='center', alpha=0.5)
     plt.xticks(y_pos, objects, rotation='vertical')
@@ -157,7 +159,20 @@ def example2():
     plt.ylabel('Correlation')
     plt.title('Signed Correlation with biomodel')
     plt.show()
+    
+    #Calculate the number of equal signed parts. 
+    q = lambda inp : np.sum(np.sign(inp) == np.sign(sensB)) / (sensB.shape[0] * sensB.shape[1])
+    sign_match = [q(prop[0]), q(prop[1]), q(prop[2]), q(dis[0]), q(dis[1]), 
+                  q(neighbors[0]), q(neighbors[1]), q(neighbors[2]), q(L1), 
+                  q(L2), q(eign0), q(eign1), q(eign2), q(l1), q(l2)]
+    
 
+    plt.bar(y_pos, sign_match, align='center', alpha=0.5)
+    plt.xticks(y_pos, objects, rotation='vertical')
+    plt.ylabel('Correlation')
+    plt.title('Percent agrement in direction')
+    plt.show()
+    
 
     #Norm distance
     
