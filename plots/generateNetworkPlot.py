@@ -30,15 +30,10 @@ for line in data:
 			rowGene = re.sub('-', "\n", rowGene)
 			colGene = re.sub('-', "\n", colGene)
 
-			#G.add_edge(rowGene, colGene, weight=statusVal)
 			G.add_edge(rowGene, colGene, weight=statusVal)
 			
 
 
-		# element = lineArr
-		# print 
-
-	# G.add_edges_from
 
 # Need to create a layout when doing
 # separate calls to draw nodes and edges
