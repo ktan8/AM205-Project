@@ -8,16 +8,13 @@ import pandas as pd
 import os
 import scipy.stats
 import matplotlib.pyplot as plt
-import rpy2.robjects as robjects
-import Bio.Cluster
-from rpy2.robjects import r
 
 def sens_prop(adj):
     '''Generate senstitivy of propogration networks as described in 
     Equation 3'''
     adj = np.matrix(adj)
-    D1 = np.array(np.sqrt(np.sum(np.fabs(adj), axis = 1)))
-    D2 = np.array(np.sqrt(np.sum(np.fabs(adj), axis = 0)))
+    D1 = np.array(np.sqrt(np.sum(np.abs(adj), axis = 1)))
+    D2 = np.array(np.sqrt(np.sum(np.abs(adj), axis = 0)))
     
     def root_s(x):
         return(np.where(x == 0, 0, 1/x))
@@ -35,12 +32,8 @@ def senseBio(J):
     IJ = np.linalg.inv(I - J)
     for i in range(0, len(IJ)):
         IJ[:, i] = IJ[:, i] / IJ[i, i]
-#    flipped = 1/ IJ
-#    flipped[flipped == np.inf] = 0
-#    IJ = np.matrix(IJ)
-#    diag = np.matrix(np.diag(flipped)).T
     return(IJ)
-#    return(IJ * diag)
+
 def get_data(path):
     '''Read jacobian/model data'''
     data =  pd.read_csv(path, index_col = 0)
@@ -64,13 +57,13 @@ def generate_topology(data):
     signed_directed = np.sign(data)
     unsigned_directed = np.abs(np.sign(data))
     unsigned_undirected = np.sign(unsigned_directed + unsigned_directed.T)
-   # unsigned_undirected_t = (unsigned_directed + unsigned_directed.T)
+    unsigned_undirected_t = (unsigned_directed + unsigned_directed.T)
 
-    return(signed_directed, unsigned_directed, unsigned_undirected, signed_directed)
+    return(signed_directed, unsigned_directed, unsigned_undirected, unsigned_undirected_t)
 
 def generate_sense_prop(data):
     '''Take topolgoy and generate_propagation S'''
-    (sd, ud, uu, _) = generate_topology(data)    
+    (sd, ud, uu, __) = generate_topology(data)    
     sens_sd = sens_prop(sd)
     sens_ud = sens_prop(ud)
     sens_uu = sens_prop(uu)
@@ -102,17 +95,20 @@ def dist_pop(dist_mat):
     
 def example():
     '''Example generation of data'''
-    (data, indexname, df) = get_data(os.path.join("BIOMD0000000313", "jacobian.csv"))
-   # (data, indexname) = get_data(os.path.join("BIOMD0000000404", "jacobian.csv"))
-
+    path = os.path.join("BIOMD0000000313", "jacobian.csv")
+    return(run_many(path))
+    
+def run_many(path):
+    '''Run throw the exisitng models'''
+    (data, indexname, df) = get_data(path)
     prop = generate_sense_prop(data)
     dist = generate_distance_influence(data)
     neighbors = generate_topology(data)
     return(prop, dist, (neighbors[0], neighbors[1], neighbors[3]))
-    
+
 def compare_mat(mat1, mat2):
     a = np.linalg.norm(mat1 - mat2)
-    b = scipy.stats.spearmanr(np.fabs(mat1), np.fabs(mat2), axis = None)
+    b = scipy.stats.spearmanr(np.abs(mat1), np.abs(mat2), axis = None)
     c= scipy.stats.spearmanr((mat1), (mat2), axis = None)
 
     return((a, b[0], c[0]))
@@ -126,12 +122,28 @@ def example2():
     (cor_prob_sd, cor_prop_ud, cor_prob_uu) = (compare_mat(sensB, prop[0] ), compare_mat(sensB, prop[1] + off()),  compare_mat(sensB, prop[2] + off()))
     (cor_dist_ud, cor_dist_uu) = (compare_mat(sensB, dis[0] + off()), compare_mat(sensB, dis[1] + off()))
     (cor_neigh_sd, cor_neigh_ud, cor_neigh_uu) = (compare_mat(sensB, neighbors[0].T ), compare_mat(sensB, neighbors[1].T) , compare_mat(sensB, neighbors[2].T ))    
- 
+    
+    (eign0, eign1, eign2) = (np.linalg.eig(neighbors[0].T)[1], np.linalg.eig(neighbors[1].T)[1], np.linalg.eig(neighbors[2].T)[1])
+    D1 = np.sum(neighbors[2].T, axis = 1)
+        
+    D2 = np.sum(neighbors[1].T, axis = 1)
+    L1 = neighbors[2].T - D1
+    l1 = np.linalg.eig(L1)[1]
+    L2 = neighbors[1].T - D2
+    l2 = np.linalg.eig(L2)[1]
+    
+
+    (corrE0, corrE1, corrE2) = (compare_mat(sensB, eign0), compare_mat(sensB, eign1), compare_mat(sensB, eign2))
+    (lapE1, lapE2) = (compare_mat(sensB, l1), compare_mat(sensB, l2))
+    #  D1 = (np.sum(np.abs(), axis = 1))
+   
     objects = ('Prop sign', 'Propogation_directed_unsigned',
                'Propogation_undirected', 'Distance_directed', 'Distance_undirected', 
-               'Neighbor directed', 'Neighbor undirected', 'total neighbor')
+               'Neighbor directed', 'Neighbor undirected', 'total neighbor', 
+               'Eigenvector sign', 'Eigenvector directed', 'eigenvector undirected', \
+               'Laplacian_eigen dir', 'Lapaclain_eign_undir')
     y_pos = np.arange(len(objects))
-    diff_data = [cor_prob_sd, cor_prop_ud, cor_prob_uu, cor_dist_ud, cor_dist_uu, cor_neigh_sd, cor_neigh_ud, cor_neigh_uu]
+    diff_data = [cor_prob_sd, cor_prop_ud, cor_prob_uu, cor_dist_ud, cor_dist_uu, cor_neigh_sd, cor_neigh_ud, cor_neigh_uu, corrE0, corrE1, corrE2, lapE1, lapE2]
     corrs = [x[1] for x in diff_data]
     plt.bar(y_pos, corrs, align='center', alpha=0.5)
     plt.xticks(y_pos, objects, rotation='vertical')
@@ -149,4 +161,4 @@ def example2():
 
     #Norm distance
     
-
+(_, v) = np.linalg.eig(neighbors[0])
