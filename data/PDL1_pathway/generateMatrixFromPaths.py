@@ -8,7 +8,6 @@ from collections import defaultdict
 
 # Generate the the matrix file from the network
 # relationship file
-
 file = sys.argv[1]
 
 def generateMatrix(file):
@@ -31,7 +30,6 @@ def generateMatrix(file):
 
 	# Build the matrix of the pathway
 	pathwayMat = np.zeros((geneCount,geneCount), dtype=int)
-	#print allNodes.keys().index("")
 	for data in networkData:
 		(start, end, desc, direction) = data
 		startIndex = allGenes.index(start)
@@ -43,18 +41,10 @@ def generateMatrix(file):
 			pathwayMat[startIndex, endIndex] = -1
 			
 
-
-
+	# Write the csv file
 	df = pd.DataFrame(pathwayMat, columns=allGenes, index=allGenes)
 	df.to_csv("PDL1_pathway.matrix.csv")
-	#df.to_csv("PDL1_pathway.matrix.csv", columns=allGenes, index=allGenes)
-	print df
-
-	# pathwayMat
 
 
-	# return pathwayMat
 
-
-print file
 generateMatrix(file)

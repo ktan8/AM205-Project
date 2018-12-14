@@ -32,6 +32,7 @@ IFNgamma-IFNGR1-IFNGR2-JAK	STAT_activated		Enhance
 STAT	STAT_activated		Enhance
 STAT1	STAT		Enhance
 STAT3	STAT		Enhance
+STAT5	STAT		Enhance
 STAT_activated	PD-L1		Enhance
 JAK	SHP2		Enhance
 SHP2	RAS		Enhance
