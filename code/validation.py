@@ -17,9 +17,9 @@ def label_active(row):
         return(-1)
     return(0)
 
-def get_data_jak2():
+def get_data_jak2(path):
     '''Read the expression data for jak2'''
-    path = os.path.join("data", "data_jak2_knockdown.txt")
+    #path = os.path.join("data", "data_jak2_knockdown.txt")
     data = pd.read_csv(path, sep = '\t')
     data["RNA1_percent"] = data["sh-JAK2-shRNA1"] / data["shRNA-control"]
     data["RNA2_percent"] = data["sh-JAK2-shRNA2"] / data["shRNA-control"]
@@ -27,20 +27,18 @@ def get_data_jak2():
     data['mat_val'] = data.apply(label_active, axis = 1)
     return(data)
     
-def get_data_stat5():
+def get_data_stat5(path):
     '''Get stat5 expression data'''
-    path3 = os.path.join("data", "data_stat5_knockdown.txt")
-    d4 = pd.read_csv(path3, sep = '\t')
+    d4 = pd.read_csv(path, sep = '\t')
     d4['percent_change' ] = d4['data.expr.anno.ctl'] / d4['data.expr.anno.kdSTAT5']
     return(d4)
     
-def get_pathway(path):
+def get_pathway(path, conversion_path):
     '''Read in hand currated network'''
     pathway = pd.read_csv(path)
     pathway = pathway.set_index("Unnamed: 0")
     pathway.index.name = "Gene"
     
-    conversion_path = os.path.join("data", "convertModelToExprNames.txt")
     conversions = pd.read_table(conversion_path)
     return(pathway, conversions)
 
@@ -81,15 +79,15 @@ def wrapper_corr(jak2_index, indicies, exp):
     
     
 
-def run_example(data, pathway, conversions, elc, knockdown_gene ):
-    path2 = os.path.join("data", "PDL1_pathway", "PDL1_pathway.matrix.csv")
+def run_example(data, pathway, conversions, elc, knockdown_gene, pathway_path ):
+    #pathway_path = os.path.join("data", "PDL1_pathway", "PDL1_pathway.matrix.csv")
     
     tran = True
     rem  = True
     
     '''Get the models'''
-    (prop, dist, neighbors) = network_matrices.run_many(path2, tran, rem)
-    (_, gene_names, _) = network_matrices.get_data(path2, tran, rem)
+    (prop, dist, neighbors) = network_matrices.run_many(pathway_path, tran, rem)
+    (_, gene_names, _) = network_matrices.get_data(pathway_path, tran, rem)
     
     genes_have_all = list(elc.items())
     genes_have = [x[0] for x in genes_have_all]
@@ -143,7 +141,7 @@ def run_example(data, pathway, conversions, elc, knockdown_gene ):
     plt.show()
     
     def isactive(val):
-    '''Look at the direction. Up is more than 10%, down is < 10%'''
+        '''Look at the direction. Up is more than 10%, down is < 10%'''
         if(val > 0.1):
             return(1)
         elif(val < -0.1):
@@ -187,16 +185,22 @@ def run_example(data, pathway, conversions, elc, knockdown_gene ):
     return(d)
 
 
-(pathway, conversions) = get_pathway(os.path.join("data", "PDL1_pathway", "PDL1_pathway.matrix.csv"))
-elc = compute_expressions(conversions.values, jak_2)
-knockdown_gene = "JAK2"
+conversion_path = os.path.join( os.path.dirname(os.getcwd()), "data", "knockdown_jak2", "convertModelToExprNames.txt")
+pathway_path = os.path.join(os.path.dirname(os.getcwd()), "data",  "networkPerturbation", "PDL1_pathway", "PDL1_pathway.matrix.csv")
+(pathway, conversions) = get_pathway(pathway_path, conversion_path)
+#jak2_path= os.path.join( "..", "data", "knockdown_jak2", "data_jak2_knockdown.txt")
+#jak_2 = get_data_jak2(jak2_path)
+#elc = compute_expressions(conversions.values, jak_2)
+#knockdown_gene = "JAK2"
 
-run_example(jak_2, pathway, conversions, elc, knockdown_gene)
+#run_example(jak_2, pathway, conversions, elc, knockdown_gene, pathway_path)
 
-#stat5 = get_data_stat5()
-#elc2 = compute_expressions(conversions.values, stat5, 'data.expr.anno.GENE_SYMBOL','data.expr.anno.ctl', 'data.expr.anno.kdSTAT5')
-#knockdown_gene = "STAT5"
-#run_example(stat5, pathway, conversions, elc2, knockdown_gene)
+path_stat5 = os.path.join( "..", "data", "knockdown_stat5", "data_stat5_knockdown.txt")
+
+stat5 = get_data_stat5(path_stat5)
+elc2 = compute_expressions(conversions.values, stat5, 'data.expr.anno.GENE_SYMBOL','data.expr.anno.ctl', 'data.expr.anno.kdSTAT5')
+knockdown_gene = "STAT5"
+run_example(stat5, pathway, conversions, elc2, knockdown_gene, pathway_path)
 
 #
 #

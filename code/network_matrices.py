@@ -97,10 +97,10 @@ def dist_pop(dist_mat):
     '''Distance matrix -> S matrix'''
     return(1 / (1 + dist_mat))
     
-def example():
+def example(biomodel_path):
     '''Example generation of data'''
-    path = os.path.join("BIOMD0000000313", "jacobian.csv")
-    return(run_many(path))
+   # path = os.path.join("BIOMD0000000313", "jacobian.csv")
+    return(run_many(biomodel_path))
     
 def run_many(path, tranpose = False, rem = True):
     '''Run throw the exisitng models'''
@@ -120,21 +120,22 @@ def compare_mat(mat1, mat2):
 
 
 def katz_centrality(mat):
+    '''Get the katz centrality of each node'''
     g = nx.Graph(mat)
     ds = nx.katz_centrality_numpy(g)
     return(ds)
     
     
-def example2():
+def example2(biomodel_path):
     '''Run a full example'''
     
     '''Get the data and get the sensitvity matricies. '''
-    (data, indexname, ind) = get_data(os.path.join("BIOMD0000000313", "jacobian.csv"))
+    (data, indexname, ind) = get_data(biomodel_path)
     sensB = senseBio(data)
-    (prop, dis, neighbors )= example()
+    (prop, dis, neighbors )= example(biomodel_path)
     '''Comptue the correlations'''
-    (cor_prob_sd, cor_prop_ud, cor_prob_uu) = (compare_mat(sensB, prop[0] ), compare_mat(sensB, prop[1] + off()),  compare_mat(sensB, prop[2] + off()))
-    (cor_dist_ud, cor_dist_uu) = (compare_mat(sensB, dis[0] + off()), compare_mat(sensB, dis[1] + off()))
+    (cor_prob_sd, cor_prop_ud, cor_prob_uu) = (compare_mat(sensB, prop[0] ), compare_mat(sensB, prop[1] ),  compare_mat(sensB, prop[2]))
+    (cor_dist_ud, cor_dist_uu) = (compare_mat(sensB, dis[0] ), compare_mat(sensB, dis[1] ))
     (cor_neigh_sd, cor_neigh_ud, cor_neigh_uu) = (compare_mat(sensB, neighbors[0] ), compare_mat(sensB, neighbors[1]) , compare_mat(sensB, neighbors[2] ))    
     
     
@@ -213,15 +214,10 @@ def example2():
     plt.ylabel('Percent agreement')
     plt.title('Percent agreement in sign')
     plt.show()
-    
 
-    #Norm distance
-#example2()    
+
+#Example uncomment below
+
+#biomodel_path = os.path.join("..", "data", "biomodel", "BIOMD0000000313", "jacobian.csv")
+#example2(biomodel_path)    
                    
-#nx.draw_networkx_nodes(g,pos)
-#nx.draw_networkx_edges(g,pos)
-#labels = {}
-#for i in range(len(ind.columns)):
-#    labels[i] = ind.columns[i]
-#nx.draw_networkx_labels(g, pos, labels)
-#_, v) = np.linalg.eig(neighbors[0])
