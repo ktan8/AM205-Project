@@ -18,7 +18,7 @@ def label_active(row):
     return(0)
 
 def get_data_jak2():
-    '''Read the expression data'''
+    '''Read the expression data for jak2'''
     path = os.path.join("data", "data_jak2_knockdown.txt")
     data = pd.read_csv(path, sep = '\t')
     data["RNA1_percent"] = data["sh-JAK2-shRNA1"] / data["shRNA-control"]
@@ -28,6 +28,7 @@ def get_data_jak2():
     return(data)
     
 def get_data_stat5():
+    '''Get stat5 expression data'''
     path3 = os.path.join("data", "data_stat5_knockdown.txt")
     d4 = pd.read_csv(path3, sep = '\t')
     d4['percent_change' ] = d4['data.expr.anno.ctl'] / d4['data.expr.anno.kdSTAT5']
@@ -44,6 +45,7 @@ def get_pathway(path):
     return(pathway, conversions)
 
 def compute_expressions(conversions, df, gene_col = "Gene Symbol", control_col = "shRNA-control", experiment_col = "sh-JAK2-shRNA1"):
+    '''Create a dictionary of the expresison data percent change per gene'''
     expression_levels_change = {}
     for elem in conversions: 
         model_name = elem[0]
@@ -51,7 +53,7 @@ def compute_expressions(conversions, df, gene_col = "Gene Symbol", control_col =
         total_control = 0
         total_expression = 0
         for gene in targets:
-            avg_df = df[df[gene_col] == gene].mean()
+            avg_df = df[df[gene_col] == gene].mean() # We may have multiple expression
             total_control += avg_df[experiment_col]
             total_expression += avg_df[control_col]
         change = total_control / total_expression - 1
@@ -62,43 +64,30 @@ def compute_expressions(conversions, df, gene_col = "Gene Symbol", control_col =
 
 
  
-def get_modes(path, tran = True, rem = False,):
-    (prop, dist, neighbors) = network_matrices.run_many(path2, tran,rem)
-    (_, gene_names, _) = network_matrices.get_data(path2, tran, rem)
-
-# Get the indicies we care about. 
-#gene_have = list(copy["Gene Symbol"])
-#gene_in_path = list(data.keys())
-
-# Now go and compare the expression with the varios sensititivies in direction. 
 def get_val(df, index, gene_names):
     a = (df[df["Gene Symbol"] == gene_names[index]]['mat_val']).sum()
     return(np.sign(a))
 
 
 def quick_correlation(jak2_index, indicies, mat1, exp):
-    print(mat1)
+    '''Compute the correlation at a given index pair in mat1'''
     l1 = np.squeeze(np.asarray(mat1[jak2_index, indicies]))
-#    l1 = mat1[jak2_index, indicies].tolist()[0]
-    print(l1)
-    print(exp)
-    print(len(l1))
-    print(len(exp))
     return(scipy.stats.spearmanr(np.abs(l1), np.abs(exp)))
 
 def wrapper_corr(jak2_index, indicies, exp):
+    '''Dummy wrapper for syntax'''
     return(lambda x : quick_correlation(jak2_index, indicies, x, exp))
     
     
     
 
 def run_example(data, pathway, conversions, elc, knockdown_gene ):
-  #  data = get_data()    
     path2 = os.path.join("data", "PDL1_pathway", "PDL1_pathway.matrix.csv")
     
     tran = True
     rem  = True
     
+    '''Get the models'''
     (prop, dist, neighbors) = network_matrices.run_many(path2, tran, rem)
     (_, gene_names, _) = network_matrices.get_data(path2, tran, rem)
     
@@ -117,25 +106,12 @@ def run_example(data, pathway, conversions, elc, knockdown_gene ):
     
     
     genes_have_val = np.array(genes_have_val)
-    #corrs = np.zeros(8)
     f = wrapper_corr(jak2_index, indicies, genes_have_val)
-    #
-    
-    (eign0, eign1, eign2) = (np.linalg.eig(neighbors[0])[1], np.linalg.eig(neighbors[1])[1], np.linalg.eig(neighbors[2])[1])
-    D1 = np.sum(neighbors[2], axis = 1)
-            
-    D2 = np.sum(neighbors[1], axis = 1)
-    L1 = neighbors[2] - D1
-    l1 = np.linalg.eig(L1)[1]
-    L2 = neighbors[1] - D2
-    l2 = np.linalg.eig(L2)[1]
+    #Correlation data
+    corr_data = [f(prop[0]), f(prop[1]), f(prop[2]), f(dist[0]), f(dist[1]) ]
     
     
-    # Need to make sure the diretion is right still. 
-    corr_data = [f(prop[0]), f(prop[1]), f(prop[2]), f(dist[0]), f(dist[1]), 
-                 #f(neighbors[0], f(neighbors[1]), f(neighb)), 
-                 ]
-    
+    '''Plotting code'''
     blues = [plt.cm.Blues(300), plt.cm.Blues(200), plt.cm.Blues(100)]
     oranges= [plt.cm.Oranges(200), plt.cm.Oranges(100)]
     greys= [plt.cm.Greys(300), plt.cm.Greys(200), plt.cm.Greys(100)]
@@ -167,18 +143,21 @@ def run_example(data, pathway, conversions, elc, knockdown_gene ):
     plt.show()
     
     def isactive(val):
+    '''Look at the direction. Up is more than 10%, down is < 10%'''
         if(val > 0.1):
             return(1)
         elif(val < -0.1):
             return(-1)
         return(0)
     
-    vfunc = np.vectorize(isactive)
-        
+    
+
+    vfunc = np.vectorize(isactive)        
     genes_have_val_ind = vfunc(genes_have_val)
+    
+    '''Get the precent sign match'''
     q = lambda inp : np.sum(np.sign(inp[jak2_index, indicies]) == np.sign(genes_have_val_ind)) / (len(indicies))
     sign_match = [q(prop[0]), q(prop[1]), q(prop[2]), q(dist[0]), q(dist[1]), 
-                     #q(neighbors[0])
                      ]
         
     
@@ -203,19 +182,21 @@ def run_example(data, pathway, conversions, elc, knockdown_gene ):
         df_res.index.name = "method"
         return(df_res)
     
+    '''Can write this data to a csv if needed'''
     d = write_data(pdl1_index , all_data_models, all_data_names, pathway)
     return(d)
-#jak_2 = get_data_jak2()
-(pathway, conversions) = get_pathway(os.path.join("data", "PDL1_pathway", "PDL1_pathway.matrix.csv"))
-#elc = compute_expressions(conversions.values, jak_2)
-#knockdown_gene = "JAK2"
-#
-#run_example(jak_2, pathway, conversions, elc, knockdown_gene)
 
-stat5 = get_data_stat5()
-elc2 = compute_expressions(conversions.values, stat5, 'data.expr.anno.GENE_SYMBOL','data.expr.anno.ctl', 'data.expr.anno.kdSTAT5')
-knockdown_gene = "STAT5"
-run_example(stat5, pathway, conversions, elc2, knockdown_gene)
+
+(pathway, conversions) = get_pathway(os.path.join("data", "PDL1_pathway", "PDL1_pathway.matrix.csv"))
+elc = compute_expressions(conversions.values, jak_2)
+knockdown_gene = "JAK2"
+
+run_example(jak_2, pathway, conversions, elc, knockdown_gene)
+
+#stat5 = get_data_stat5()
+#elc2 = compute_expressions(conversions.values, stat5, 'data.expr.anno.GENE_SYMBOL','data.expr.anno.ctl', 'data.expr.anno.kdSTAT5')
+#knockdown_gene = "STAT5"
+#run_example(stat5, pathway, conversions, elc2, knockdown_gene)
 
 #
 #
