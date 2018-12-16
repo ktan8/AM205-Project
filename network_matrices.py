@@ -8,7 +8,7 @@ import pandas as pd
 import os
 import scipy.stats
 import matplotlib.pyplot as plt
-
+from matplotlib.pyplot import cm
 def sens_prop(adj):
     '''Generate senstitivy of propogration networks as described in 
     Equation 3'''
@@ -28,22 +28,26 @@ def sens_prop(adj):
     return(S)
 
 def senseBio(J):
+    '''Sensitity of the biochemcail network as described in the paper'''
     I = np.eye(J.shape[0])
     IJ = np.linalg.inv(I - J)
     for i in range(0, len(IJ)):
         IJ[:, i] = IJ[:, i] / IJ[i, i]
     return(IJ)
 
-def get_data(path):
+def get_data(path, tranpose = False, rem = True):
     '''Read jacobian/model data'''
     data =  pd.read_csv(path, index_col = 0)
     mat = data.values
-    to_check = np.sum(np.fabs(mat), axis = 0)
-    to_check = to_check > 0
-    ind = np.where(to_check)
-    #print(ind)
-    indicies = data.columns
-    data = data[indicies[ind]].iloc[ind]
+    if(tranpose):
+        mat = mat.T
+    if(rem):
+        to_check = np.sum(np.fabs(mat), axis = 0)
+        to_check = to_check > 0
+        ind = np.where(to_check)
+        #print(ind)
+        indicies = data.columns
+        data = data[indicies[ind]].iloc[ind]
 
     res_mat = data.values
     res_indicies = data.columns
@@ -98,15 +102,16 @@ def example():
     path = os.path.join("BIOMD0000000313", "jacobian.csv")
     return(run_many(path))
     
-def run_many(path):
+def run_many(path, tranpose = False, rem = True):
     '''Run throw the exisitng models'''
-    (data, indexname, df) = get_data(path)
+    (data, indexname, df) = get_data(path, tranpose, rem)
     prop = generate_sense_prop(data)
     dist = generate_distance_influence(data)
     neighbors = generate_topology(data)
-    return(prop, dist, (neighbors[0], neighbors[1], neighbors[3]))
+    return(prop, dist, (neighbors[0], neighbors[1], neighbors[2]))
 
 def compare_mat(mat1, mat2):
+    '''Spearman correlation between two list'''
     a = np.linalg.norm(mat1 - mat2)
     b = scipy.stats.spearmanr(np.abs(mat1), np.abs(mat2), axis = None)
     c= scipy.stats.spearmanr((mat1), (mat2), axis = None)
@@ -114,47 +119,83 @@ def compare_mat(mat1, mat2):
     return((a, b[0], c[0]))
 
 
+def katz_centrality(mat):
+    g = nx.Graph(mat)
+    ds = nx.katz_centrality_numpy(g)
+    return(ds)
+    
+    
 def example2():
+    '''Run a full example'''
+    
+    '''Get the data and get the sensitvity matricies. '''
     (data, indexname, ind) = get_data(os.path.join("BIOMD0000000313", "jacobian.csv"))
     sensB = senseBio(data)
     (prop, dis, neighbors )= example()
-    off = lambda : np.random.random() * 1e-7
+    '''Comptue the correlations'''
     (cor_prob_sd, cor_prop_ud, cor_prob_uu) = (compare_mat(sensB, prop[0] ), compare_mat(sensB, prop[1] + off()),  compare_mat(sensB, prop[2] + off()))
     (cor_dist_ud, cor_dist_uu) = (compare_mat(sensB, dis[0] + off()), compare_mat(sensB, dis[1] + off()))
-    (cor_neigh_sd, cor_neigh_ud, cor_neigh_uu) = (compare_mat(sensB, neighbors[0].T ), compare_mat(sensB, neighbors[1].T) , compare_mat(sensB, neighbors[2].T ))    
+    (cor_neigh_sd, cor_neigh_ud, cor_neigh_uu) = (compare_mat(sensB, neighbors[0] ), compare_mat(sensB, neighbors[1]) , compare_mat(sensB, neighbors[2] ))    
     
-    (eign0, eign1, eign2) = (np.linalg.eig(neighbors[0].T)[1], np.linalg.eig(neighbors[1].T)[1], np.linalg.eig(neighbors[2].T)[1])
-    D1 = np.sum(neighbors[2].T, axis = 1)
+    
+    katz1 = katz_centrality(neighbors[1])
+    katz1 = np.array(list(katz1.values()))
+    katzm1 = (neighbors[1][np.newaxis, :] * katz1 )[0, :, :]
+    
+    
+    katz2 = katz_centrality(neighbors[2])
+    katz2 = np.array(list(katz2.values()))
+    katzm2 = (neighbors[0][np.newaxis, :] * katz2 )[0, :, :]
+    
+    (eign0, eign1, eign2) = (np.linalg.eig(neighbors[0])[1], np.linalg.eig(neighbors[1])[1], np.linalg.eig(neighbors[2])[1])
+ 
+    
+    '''LAplacian and Eigenvectors'''
+    D1 = np.sum(neighbors[2], axis = 1)
         
-    D2 = np.sum(neighbors[1].T, axis = 1)
-    L1 = neighbors[2].T - D1
+    D2 = np.sum(neighbors[1], axis = 1)
+    L1 = neighbors[2] - D1
     l1 = np.linalg.eig(L1)[1]
-    L2 = neighbors[1].T - D2
+    L2 = neighbors[1] - D2
     l2 = np.linalg.eig(L2)[1]
     
 
-    (corrE0, corrE1, corrE2) = (compare_mat(sensB, eign0), compare_mat(sensB, eign1), compare_mat(sensB, eign2))
-    (lapE1, lapE2) = (compare_mat(sensB, l1), compare_mat(sensB, l2))
-    (lap1, lap2) = (compare_mat(sensB, L1), compare_mat(sensB, L2))
+    (corrE0, corrE1, corrE2) = (compare_mat(sensB, sens_prop(eign0)), compare_mat(sensB, sens_prop(eign1)), compare_mat(sensB, sens_prop(eign2)))
+    (lap1, lap2) = (compare_mat(sensB, sens_prop(katzm1)), compare_mat(sensB, (katzm2)))
+   # (lap1, lap2) = (compare_mat(sensB, dist_pop(L1)), compare_mat(sensB, dist_pop(L2)))
     #  D1 = (np.sum(np.abs(), axis = 1))
    
-    objects = ('Prop sign', 'Propogation_directed_unsigned',
-               'Propogation_undirected', 'Distance_directed', 'Distance_undirected', 
-               'Neighbor directed', 'Neighbor undirected', 'total neighbor', 
-               'Laplacian sign', 'Laplacian unsigned',
-               'Eigenvector sign', 'Eigenvector directed', 'eigenvector undirected', \
-               'Laplacian_eigen dir', 'Lapaclain_eign_undir')
+    objects = ('Propogation (d+s)', 'Propogation (d)',
+               'Propogation (u)', 'Distance (d)', 'Distance (u)', 
+               'Adjacency (d+s)', 'Adjacency (d)', 'Adjacency (u)', 
+               'Eigenvectors adj (d+s)', 'Eigvectors adj (d)', 'Eigenvectors adj (u)', \
+               'Katz propogation(d)', 'Katz Propogation(u)')
     y_pos = np.arange(len(objects))
-    diff_data = [cor_prob_sd, cor_prop_ud, cor_prob_uu, cor_dist_ud, cor_dist_uu, cor_neigh_sd, cor_neigh_ud, cor_neigh_uu, lap1, lap2, corrE0, corrE1, corrE2, lapE1, lapE2]
+    diff_data = [cor_prob_sd, cor_prop_ud, cor_prob_uu, cor_dist_ud, cor_dist_uu, cor_neigh_sd, cor_neigh_ud, cor_neigh_uu, corrE0, corrE1, corrE2, lap1, lap2]
+    
     corrs = [x[1] for x in diff_data]
-    plt.bar(y_pos, corrs, align='center', alpha=0.5)
+    print(corrs)
+    color=iter(cm.rainbow(np.linspace(0,1,len(objects))))
+    colors = list(color)
+    
+    blues = [plt.cm.Blues(300), plt.cm.Blues(200), plt.cm.Blues(100)]
+    oranges= [plt.cm.Oranges(200), plt.cm.Oranges(100)]
+    greys= [plt.cm.Greys(300), plt.cm.Greys(200), plt.cm.Greys(100)]
+
+    reds= [
+            plt.cm.Reds(200), plt.cm.Reds(175), plt.cm.Reds(150),
+            plt.cm.Reds(125), plt.cm.Reds(100)
+           ]
+
+    colors = blues + oranges + greys + reds
+    plt.bar(y_pos, corrs, align='center', alpha=0.5, color = colors)
     plt.xticks(y_pos, objects, rotation='vertical')
     plt.ylabel('Correlation')
     plt.title('Correlation with biomodel')
     plt.show()
 
     corrs2 = [x[2] for x in diff_data]
-    plt.bar(y_pos, corrs2, align='center', alpha=0.5)
+    plt.bar(y_pos, corrs2, align='center', alpha=0.5, color = colors)
     plt.xticks(y_pos, objects, rotation='vertical')
     plt.ylabel('Correlation')
     plt.title('Signed Correlation with biomodel')
@@ -163,17 +204,24 @@ def example2():
     #Calculate the number of equal signed parts. 
     q = lambda inp : np.sum(np.sign(inp) == np.sign(sensB)) / (sensB.shape[0] * sensB.shape[1])
     sign_match = [q(prop[0]), q(prop[1]), q(prop[2]), q(dis[0]), q(dis[1]), 
-                  q(neighbors[0]), q(neighbors[1]), q(neighbors[2]), q(L1), 
-                  q(L2), q(eign0), q(eign1), q(eign2), q(l1), q(l2)]
+                  q(neighbors[0]), q(neighbors[1]), q(neighbors[2]), q(eign0), q(eign1), q(eign2), q(l1), q(l2)]
     
-
-    plt.bar(y_pos, sign_match, align='center', alpha=0.5)
+    print("SIGN Match")
+    print(sign_match)
+    plt.bar(y_pos, sign_match, align='center', alpha=0.5, color = colors)
     plt.xticks(y_pos, objects, rotation='vertical')
-    plt.ylabel('Correlation')
-    plt.title('Percent agrement in direction')
+    plt.ylabel('Percent agreement')
+    plt.title('Percent agreement in sign')
     plt.show()
     
 
     #Norm distance
-    
-(_, v) = np.linalg.eig(neighbors[0])
+#example2()    
+                   
+#nx.draw_networkx_nodes(g,pos)
+#nx.draw_networkx_edges(g,pos)
+#labels = {}
+#for i in range(len(ind.columns)):
+#    labels[i] = ind.columns[i]
+#nx.draw_networkx_labels(g, pos, labels)
+#_, v) = np.linalg.eig(neighbors[0])
