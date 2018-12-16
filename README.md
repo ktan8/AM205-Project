@@ -1,5 +1,5 @@
 # AM205-Project
-This is the code repository for our am205 project on "Predict Cancer Immunotherapy Resistance from Network Topology". The repository is divided into a few section.
+This is the code repository for our am205 project on "Predict Cancer Immunotherapy Resistance from Network Topology". The repository is divided into a few sections.
 
 1) code - code and model in the study
 - validation.py
